@@ -31,9 +31,10 @@ private:
 	void CreateMatrices();
 	void CreateBasicGeometry();
 
-	// Buffers to hold actual geometry data
-	ID3D11Buffer* vertexBuffer;
-	ID3D11Buffer* indexBuffer;
+	// Mesh Object to use with Mesh Class to draw 3 different shapes.
+	class Mesh* MeshOne = nullptr;
+	class Mesh* MeshTwo = nullptr;
+	class Mesh* MeshThree = nullptr;
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
