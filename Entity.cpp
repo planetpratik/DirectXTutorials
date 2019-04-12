@@ -10,6 +10,14 @@ Entity::Entity(Mesh* t_mesh) :
 {
 }
 
+Entity::Entity(const Entity& t_rhs)
+{
+	position = t_rhs.position;
+	scale = t_rhs.scale;
+	rotation = t_rhs.rotation;
+	entity_mesh = t_rhs.entity_mesh;
+}
+
 void Entity::MoveRelative(const float& t_X, const float& t_Y, const float& t_Z)
 {
 	XMVECTOR direction = XMVector3Rotate(XMVectorSet(t_X, t_Y, t_Z, 0), XMLoadFloat4(&rotation));
@@ -23,7 +31,7 @@ void Entity::MoveAbsolute(const float& t_X, const float& t_Y, const float& t_Z)
 	position.z += t_Y;
 }
 
-const Mesh* Entity::GetEntityMesh() const
+Mesh* Entity::GetEntityMesh() const
 {
 	return entity_mesh;
 }
@@ -65,6 +73,18 @@ const DirectX::XMFLOAT4& Entity::GetRotation() const
 void Entity::SetRotation(const DirectX::XMFLOAT4& t_rotation)
 {
 	rotation = t_rotation;
+}
+
+DirectX::XMFLOAT4X4 Entity::GetWorldMatrix()
+{
+	XMMATRIX scaleMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+	XMMATRIX positionMatrix = XMMatrixTranslation(position.x, position.y, position.z);
+
+	XMMATRIX world_matrix = scaleMatrix * rotationMatrix * positionMatrix;
+	XMFLOAT4X4 world4x4;
+	XMStoreFloat4x4(&world4x4, XMMatrixTranspose(world_matrix));
+	return world4x4;
 }
 
 Entity::~Entity()

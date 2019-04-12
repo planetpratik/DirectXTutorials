@@ -10,6 +10,9 @@ public:
 	// Entity's Constructor - Construct Entity with Mesh.
 	explicit Entity(Mesh* t_mesh);
 
+	// Copy Constructor for Entity
+	Entity(const Entity& t_rhs);
+
 	//Move Entity relative to the direction it is facing
 	void MoveRelative(const float& t_X, const float& t_Y, const float& t_Z);
 	
@@ -17,7 +20,7 @@ public:
 	void MoveAbsolute(const float& t_X, const float& t_Y, const float& t_Z);
 	
 	// Get this Entity's Mesh
-	const Mesh* GetEntityMesh() const;
+	Mesh* GetEntityMesh() const;
 	
 	// Get this Entity's current position
 	const DirectX::XMFLOAT3& GetPosition() const;
@@ -39,6 +42,9 @@ public:
 	
 	// Set this Entity's current Rotation.
 	void SetRotation(const DirectX::XMFLOAT4& t_rotation);
+
+	// Get World matrix for this Entity;
+	DirectX::XMFLOAT4X4 GetWorldMatrix();
 	
 	// Destructor for Entity (Virtual)
 	virtual ~Entity();

@@ -25,6 +25,7 @@ Game::Game(HINSTANCE hInstance)
 	// Initialize fields
 	vertexShader = 0;
 	pixelShader = 0;
+	entityCount = 0;
 
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
@@ -51,7 +52,17 @@ Game::~Game()
 	delete MeshThree;
 
 	// Delete Entities
-	delete entity_one;
+	for (size_t i = 0; i < entityCount; ++i)
+	{
+		Entity* currentEntity = entities[i];
+		if (currentEntity != nullptr)
+		{
+			delete currentEntity;
+		}
+	}
+	entities.clear();
+	entityCount = 0;
+
 }
 
 // --------------------------------------------------------
@@ -192,8 +203,14 @@ void Game::CreateBasicGeometry()
 	MeshTwo = new Mesh(device, verticesTwo, 3, indices, 3);
 	MeshThree = new Mesh(device, verticesThree, 3, indices, 3);
 
-	// Create an Entity based on these Meshes
-	entity_one = new Entity(MeshOne);
+	// Create entities based on these Meshes
+	entities.push_back(new Entity(MeshOne));
+	++entityCount;
+	entities.push_back(new Entity(MeshTwo));
+	++entityCount;
+	entities.push_back(new Entity(MeshThree));
+	++entityCount;
+	entities[entityCount - 1]->MoveAbsolute(-1.0f, -1.0f, 0.0f);
 
 }
 
@@ -225,10 +242,45 @@ void Game::Update(float deltaTime, float totalTime)
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
 
-	if (entity_one != nullptr)
+	XMFLOAT3 deltaInput = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	if (GetAsyncKeyState('W') & 0x80000)
 	{
-		const float speed = 2.0f;
-		entity_one->MoveAbsolute(speed * deltaTime, speed * deltaTime, 0.0f);
+		deltaInput.y += 1.0f;
+	}
+
+	if (GetAsyncKeyState('S') & 0x80000)
+	{
+		deltaInput.y -= 1.0f;
+	}
+
+	if (GetAsyncKeyState('A') & 0x80000)
+	{
+		deltaInput.x -= 1.0f;
+	}
+
+	if (GetAsyncKeyState('D') & 0x80000)
+	{
+		deltaInput.x += 1.0f;
+	}
+
+	if (entityCount >= 0)
+	{
+		const float speed = 1.2f;
+		float Sintime = (0.5f * sinf(0.5f * totalTime) + 0.8f);
+		entities[0]->SetScale(Sintime, Sintime, Sintime);
+		entities[0]->MoveAbsolute(
+			deltaInput.x * speed * deltaTime,
+			deltaInput.y * speed * deltaTime,
+			deltaInput.z * speed * deltaTime
+		);
+	}
+
+	for (size_t i = 0; i < entityCount; ++i)
+	{
+		XMFLOAT4 rotation = entities[i]->GetRotation();
+		rotation.z = totalTime;
+		entities[i]->SetRotation(rotation);
 	}
 }
 
@@ -250,20 +302,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
-	// Send data to shader variables
-	//  - Do this ONCE PER OBJECT you're drawing
-	//  - This is actually a complex process of copying data to a local buffer
-	//    and then copying that entire buffer to the GPU.  
-	//  - The "SimpleShader" class handles all of that for you.
-	vertexShader->SetMatrix4x4("world", worldMatrix);
-	vertexShader->SetMatrix4x4("view", viewMatrix);
-	vertexShader->SetMatrix4x4("projection", projectionMatrix);
-
-	// Once you've set all of the data you care to change for
-	// the next draw call, you need to actually send it to the GPU
-	//  - If you skip this, the "SetMatrix" calls above won't make it to the GPU!
-	// vertexShader->CopyAllBufferData();
-
 	// Set the vertex and pixel shaders to use for the next Draw() command
 	//  - These don't technically need to be set every frame...YET
 	//  - Once you start applying different shaders to different objects,
@@ -277,46 +315,44 @@ void Game::Draw(float deltaTime, float totalTime)
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 	
-	const Mesh* entityMesh = entity_one->GetEntityMesh();
-	ID3D11Buffer* meshVertexBuffer;
-	ID3D11Buffer* meshIndexBuffer;
-	const XMFLOAT3 entity_scale = entity_one->GetScale();
-	XMMATRIX scale = XMMatrixScaling(entity_scale.x, entity_scale.y, entity_scale.z);
-	XMMATRIX rotation = XMMatrixRotationX(entity_one->GetRotation().x);
-	const XMFLOAT3 entity_positon = entity_one->GetPosition();
-	XMMATRIX position = XMMatrixTranslation(entity_positon.x, entity_positon.y, entity_positon.z);
+	const Mesh* entityMesh = nullptr;
+	Entity* currentEntity = nullptr;
+	ID3D11Buffer* meshVertexBuffer = nullptr;
+	ID3D11Buffer* meshIndexBuffer = nullptr;
+	// Draw Entities
+	for (size_t i = 0; i < entityCount; ++i)
+	{
+		currentEntity = entities[i];
 
-	// Calculate World Matrix
-	XMMATRIX world_matrix = scale * rotation * position;
-	XMFLOAT4X4 world4x4;
-	XMStoreFloat4x4(&world4x4, XMMatrixTranspose(world_matrix));
-	vertexShader->SetMatrix4x4("world", world4x4);
-	vertexShader->SetMatrix4x4("view", viewMatrix);
-	vertexShader->SetMatrix4x4("projection", projectionMatrix);
-	
-	// Draw First Mesh
-	meshVertexBuffer = entityMesh->GetVertexBuffer();
-	meshIndexBuffer = entityMesh->GetIndexBuffer();
+		vertexShader->SetMatrix4x4("world", currentEntity->GetWorldMatrix());
+		vertexShader->SetMatrix4x4("view", viewMatrix);
+		vertexShader->SetMatrix4x4("projection", projectionMatrix);
 
-	context->IASetVertexBuffers(0, 1, &meshVertexBuffer, &stride, &offset);
-	context->IASetIndexBuffer(meshIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		entityMesh = currentEntity->GetEntityMesh();
+		meshVertexBuffer = entityMesh->GetVertexBuffer();
+		meshIndexBuffer = entityMesh->GetIndexBuffer();
 
-	// Finally do the actual drawing
-	//  - Do this ONCE PER OBJECT you intend to draw
-	//  - This will use all of the currently set DirectX "stuff" (shaders, buffers, etc)
-	//  - DrawIndexed() uses the currently set INDEX BUFFER to look up corresponding
-	//     vertices in the currently set VERTEX BUFFER
-	context->DrawIndexed(
-		entityMesh->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
-		0,     // Offset to the first index we want to use
-		0);    // Offset to add to each index when looking up vertices
+		context->IASetVertexBuffers(0, 1, &meshVertexBuffer, &stride, &offset);
+		context->IASetIndexBuffer(meshIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-	vertexShader->CopyAllBufferData();
+		// Finally do the actual drawing
+		//  - Do this ONCE PER OBJECT you intend to draw
+		//  - This will use all of the currently set DirectX "stuff" (shaders, buffers, etc)
+		//  - DrawIndexed() uses the currently set INDEX BUFFER to look up corresponding
+		//     vertices in the currently set VERTEX BUFFER
+		context->DrawIndexed(
+			entityMesh->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
+			0,     // Offset to the first index we want to use
+			0);    // Offset to add to each index when looking up vertices
 
-	// Present the back buffer to the user
-	//  - Puts the final frame we're drawing into the window so the user can see it
-	//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)
-	swapChain->Present(0, 0);
+		vertexShader->CopyAllBufferData();
+
+		// Present the back buffer to the user
+		//  - Puts the final frame we're drawing into the window so the user can see it
+		//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)
+		swapChain->Present(0, 0);
+
+	}
 }
 
 
