@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Vertex.h"
 #include "Mesh.h"
+#include "Entity.h"
 
 // For the DirectX Math library
 using namespace DirectX;
@@ -48,6 +49,9 @@ Game::~Game()
 	delete MeshOne;
 	delete MeshTwo;
 	delete MeshThree;
+
+	// Delete Entities
+	delete entity_one;
 }
 
 // --------------------------------------------------------
@@ -188,6 +192,9 @@ void Game::CreateBasicGeometry()
 	MeshTwo = new Mesh(device, verticesTwo, 3, indices, 3);
 	MeshThree = new Mesh(device, verticesThree, 3, indices, 3);
 
+	// Create an Entity based on these Meshes
+	entity_one = new Entity(MeshOne);
+
 }
 
 
@@ -217,6 +224,12 @@ void Game::Update(float deltaTime, float totalTime)
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
+
+	if (entity_one != nullptr)
+	{
+		const float speed = 2.0f;
+		entity_one->MoveAbsolute(speed * deltaTime, speed * deltaTime, 0.0f);
+	}
 }
 
 // --------------------------------------------------------
@@ -249,7 +262,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Once you've set all of the data you care to change for
 	// the next draw call, you need to actually send it to the GPU
 	//  - If you skip this, the "SetMatrix" calls above won't make it to the GPU!
-	vertexShader->CopyAllBufferData();
+	// vertexShader->CopyAllBufferData();
 
 	// Set the vertex and pixel shaders to use for the next Draw() command
 	//  - These don't technically need to be set every frame...YET
@@ -263,11 +276,27 @@ void Game::Draw(float deltaTime, float totalTime)
 	//    have different geometry.
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
+	
+	const Mesh* entityMesh = entity_one->GetEntityMesh();
+	ID3D11Buffer* meshVertexBuffer;
+	ID3D11Buffer* meshIndexBuffer;
+	const XMFLOAT3 entity_scale = entity_one->GetScale();
+	XMMATRIX scale = XMMatrixScaling(entity_scale.x, entity_scale.y, entity_scale.z);
+	XMMATRIX rotation = XMMatrixRotationX(entity_one->GetRotation().x);
+	const XMFLOAT3 entity_positon = entity_one->GetPosition();
+	XMMATRIX position = XMMatrixTranslation(entity_positon.x, entity_positon.y, entity_positon.z);
 
+	// Calculate World Matrix
+	XMMATRIX world_matrix = scale * rotation * position;
+	XMFLOAT4X4 world4x4;
+	XMStoreFloat4x4(&world4x4, XMMatrixTranspose(world_matrix));
+	vertexShader->SetMatrix4x4("world", world4x4);
+	vertexShader->SetMatrix4x4("view", viewMatrix);
+	vertexShader->SetMatrix4x4("projection", projectionMatrix);
+	
 	// Draw First Mesh
-	ID3D11Buffer* meshVertexBuffer = MeshOne->GetVertexBuffer();
-	ID3D11Buffer* meshIndexBuffer = MeshOne->GetIndexBuffer();
-	UINT meshIndexCount = MeshOne->GetIndexCount();
+	meshVertexBuffer = entityMesh->GetVertexBuffer();
+	meshIndexBuffer = entityMesh->GetIndexBuffer();
 
 	context->IASetVertexBuffers(0, 1, &meshVertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(meshIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -278,27 +307,11 @@ void Game::Draw(float deltaTime, float totalTime)
 	//  - DrawIndexed() uses the currently set INDEX BUFFER to look up corresponding
 	//     vertices in the currently set VERTEX BUFFER
 	context->DrawIndexed(
-		meshIndexCount,     // The number of indices to use (we could draw a subset if we wanted)
+		entityMesh->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
 		0,     // Offset to the first index we want to use
 		0);    // Offset to add to each index when looking up vertices
 
-	// Draw Second Mesh
-	meshVertexBuffer = MeshTwo->GetVertexBuffer();
-	meshIndexBuffer = MeshTwo->GetIndexBuffer();
-	meshIndexCount = MeshTwo->GetIndexCount();
-
-	context->IASetVertexBuffers(0, 1, &meshVertexBuffer, &stride, &offset);
-	context->IASetIndexBuffer(meshIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	context->DrawIndexed(meshIndexCount, 0, 0);    
-
-	// Draw Third Mesh
-	meshVertexBuffer = MeshThree->GetVertexBuffer();
-	meshIndexBuffer = MeshThree->GetIndexBuffer();
-	meshIndexCount = MeshThree->GetIndexCount();
-
-	context->IASetVertexBuffers(0, 1, &meshVertexBuffer, &stride, &offset);
-	context->IASetIndexBuffer(meshIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	context->DrawIndexed(meshIndexCount, 0, 0);
+	vertexShader->CopyAllBufferData();
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
