@@ -1,9 +1,12 @@
 #include "Entity.h"
+#include "Material.h"
+#include "SimpleShader.h"
 
 using namespace DirectX;
 
-Entity::Entity(Mesh* t_mesh) : 
+Entity::Entity(Mesh* t_mesh, Material* t_material) : 
 	entity_mesh(t_mesh),
+	entity_material(t_material),
 	position(XMFLOAT3(0.0f, 0.0f, 0.0f)),
 	scale(XMFLOAT3(1.0f, 1.0f, 1.0f)),
 	rotation(XMFLOAT4())
@@ -34,6 +37,11 @@ void Entity::MoveAbsolute(const float& t_X, const float& t_Y, const float& t_Z)
 Mesh* Entity::GetEntityMesh() const
 {
 	return entity_mesh;
+}
+
+const Material* Entity::GetEntityMaterial() const
+{
+	return entity_material;
 }
 
 const DirectX::XMFLOAT3& Entity::GetPosition() const
@@ -87,7 +95,23 @@ DirectX::XMFLOAT4X4 Entity::GetWorldMatrix()
 	return world4x4;
 }
 
+void Entity::prepareMaterial(const DirectX::XMFLOAT4X4& t_view_matrix, const DirectX::XMFLOAT4X4& t_projection_matrix)
+{
+	SimpleVertexShader* vertex_shader = entity_material->getVertexShader();
+	SimplePixelShader* pixel_shader = entity_material->getPixelShader();
+
+	vertex_shader->SetMatrix4x4("world", GetWorldMatrix());
+	vertex_shader->SetMatrix4x4("view", t_view_matrix);
+	vertex_shader->SetMatrix4x4("projection", t_projection_matrix);
+
+	vertex_shader->SetShader();
+	vertex_shader->CopyAllBufferData();
+	pixel_shader->SetShader();
+	pixel_shader->CopyAllBufferData();
+}
+
 Entity::~Entity()
 {
 	entity_mesh = nullptr;
+	entity_material = nullptr;
 }

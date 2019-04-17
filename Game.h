@@ -7,6 +7,8 @@
 
 // Forward Declaration
 class Entity;
+class Camera;
+class Material;
 
 class Game 
 	: public DXCore
@@ -49,10 +51,16 @@ private:
 	SimpleVertexShader* vertexShader;
 	SimplePixelShader* pixelShader;
 
+	// Flying Camera to be used in our game.
+	Camera* camera = nullptr;
+
+	// Material dumb container.
+	Material* material = nullptr;
+
 	// The matrices to go from model space to screen space
-	DirectX::XMFLOAT4X4 worldMatrix;
+	/*DirectX::XMFLOAT4X4 worldMatrix;
 	DirectX::XMFLOAT4X4 viewMatrix;
-	DirectX::XMFLOAT4X4 projectionMatrix;
+	DirectX::XMFLOAT4X4 projectionMatrix;*/
 
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.

@@ -3,12 +3,13 @@
 
 // Forward Declaration of Mesh Class.
 class Mesh;
+class Material;
 
 class Entity
 {
 public:
 	// Entity's Constructor - Construct Entity with Mesh.
-	explicit Entity(Mesh* t_mesh);
+	explicit Entity(Mesh* t_mesh, Material* t_material);
 
 	// Copy Constructor for Entity
 	Entity(const Entity& t_rhs);
@@ -21,6 +22,9 @@ public:
 	
 	// Get this Entity's Mesh
 	Mesh* GetEntityMesh() const;
+
+	// Get this Entity's Material
+	const Material* GetEntityMaterial() const;
 	
 	// Get this Entity's current position
 	const DirectX::XMFLOAT3& GetPosition() const;
@@ -45,6 +49,9 @@ public:
 
 	// Get World matrix for this Entity;
 	DirectX::XMFLOAT4X4 GetWorldMatrix();
+
+	// Prepare Materials and Shaders for upcoming draw() call.
+	void prepareMaterial(const DirectX::XMFLOAT4X4& t_view_matrix, const DirectX::XMFLOAT4X4& t_projection_matrix);
 	
 	// Destructor for Entity (Virtual)
 	virtual ~Entity();
@@ -52,6 +59,9 @@ public:
 private:
 	// Pointer to Entity's Mesh Object.
 	Mesh* entity_mesh = nullptr;
+
+	// Pointer to Entity's material Object.
+	Material* entity_material = nullptr;
 
 	// Current Position of this Entity.
 	DirectX::XMFLOAT3 position;
