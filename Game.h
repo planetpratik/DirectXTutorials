@@ -4,6 +4,7 @@
 #include "SimpleShader.h"
 #include <DirectXMath.h>
 #include <vector>
+#include "Lights.h"
 
 // Forward Declaration
 class Entity;
@@ -21,6 +22,7 @@ public:
 	// Overridden setup and game loop methods, which
 	// will be called automatically
 	void Init();
+	void InitLights();
 	void OnResize();
 	void Update(float deltaTime, float totalTime);
 	void Draw(float deltaTime, float totalTime);
@@ -56,6 +58,10 @@ private:
 
 	// Material dumb container.
 	Material* material = nullptr;
+
+	// Directional Light
+	DirectionalLight directional_light;
+	DirectionalLight directional_light_two;
 
 	// The matrices to go from model space to screen space
 	/*DirectX::XMFLOAT4X4 worldMatrix;

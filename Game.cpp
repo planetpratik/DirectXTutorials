@@ -91,6 +91,8 @@ void Game::Init()
 	CreateMatrices();
 	CreateBasicGeometry();
 
+	InitLights();
+
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -125,7 +127,16 @@ void Game::LoadShaders()
 	// scenarios work correctly, although others exist
 }
 
+void Game::InitLights()
+{
+	directional_light.AmbientColor = XMFLOAT4(0.1, 0.1, 0.1, 1.0);
+	directional_light.DiffuseColor = XMFLOAT4(0.0, 0.0, 1.0, 1.0);
+	directional_light.Direction = XMFLOAT3(1.0, -1.0, 0.0);
 
+	directional_light_two.AmbientColor = XMFLOAT4(0.1, 0.1, 0.1, 1.0);
+	directional_light_two.DiffuseColor = XMFLOAT4(1.0, 0.1, 0.1, 1.0);
+	directional_light_two.Direction = XMFLOAT3(1.0, -1.0, 0.5);
+}
 
 // --------------------------------------------------------
 // Initializes the matrices necessary to represent our geometry's 
@@ -153,23 +164,23 @@ void Game::CreateBasicGeometry()
 	//    over to a DirectX-controlled data structure (the vertex buffer)
 	Vertex verticesOne[] = 
 	{
-		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), red },
-		{ XMFLOAT3(+1.5f, -1.0f, +0.0f), blue },
-		{ XMFLOAT3(-1.5f, -1.0f, +0.0f), green },
+		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
+		{ XMFLOAT3(+1.5f, -1.0f, +0.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
+		{ XMFLOAT3(-1.5f, -1.0f, +0.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
 	};
 
 	Vertex verticesTwo[] =
 	{
-		{ XMFLOAT3(+1.0f, +2.0f, +1.0f), red },
-		{ XMFLOAT3(+2.5f, +0.0f, +1.0f), red },
-		{ XMFLOAT3(-0.5f, +0.0f, +1.0f), red },
+		{ XMFLOAT3(+1.0f, +2.0f, +1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
+		{ XMFLOAT3(+2.5f, +0.0f, +1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
+		{ XMFLOAT3(-0.5f, +0.0f, +1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
 	};
 
 	Vertex verticesThree[] =
 	{
-		{ XMFLOAT3(-1.0f, +0.0f, -1.0f), green },
-		{ XMFLOAT3(+0.5f, -2.0f, -1.0f), green },
-		{ XMFLOAT3(-2.5f, -2.0f, -1.0f), green },
+		{ XMFLOAT3(-1.0f, +0.0f, -1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
+		{ XMFLOAT3(+0.5f, -2.0f, -1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
+		{ XMFLOAT3(-2.5f, -2.0f, -1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
 	};
 
 	// Set up the indices, which tell us which vertices to use and in which order
@@ -179,8 +190,8 @@ void Game::CreateBasicGeometry()
 	// - But just to see how it's done...
 	UINT indices[] = { 0, 1, 2 };
 
-	MeshOne = new Mesh(device, verticesOne, 3, indices, 3);
-	MeshTwo = new Mesh(device, verticesTwo, 3, indices, 3);
+	MeshOne = new Mesh(device, "Assets/Models/helix.obj");
+	MeshTwo = new Mesh(device, "Assets/Models/torus.obj");
 	MeshThree = new Mesh(device, verticesThree, 3, indices, 3);
 
 	material = new Material(vertexShader, pixelShader);
@@ -279,6 +290,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	for (size_t i = 0; i < entityCount; ++i)
 	{
 		currentEntity = entities[i];
+		// Set the pixel shader before we draw each entity
+		pixelShader->SetData("green_light", &directional_light_two, sizeof(DirectionalLight));
+		pixelShader->SetData("light", &directional_light, sizeof(DirectionalLight));
 		currentEntity->prepareMaterial(camera->getViewMatrix(), camera->getProjectionMatrix());
 		//vertexShader->SetMatrix4x4("world", currentEntity->GetWorldMatrix());
 		//vertexShader->SetMatrix4x4("view", camera->getViewMatrix());

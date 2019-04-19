@@ -1,11 +1,17 @@
 #pragma once
 #include <d3d11.h>
+#include <vector>
+#include <iostream>
+#include <fstream>
 
 class Mesh
 {
 public:
 	// Constructor for Mesh class.
 	Mesh(ID3D11Device* pDevice, struct Vertex* pVerts, UINT numVerts, UINT* pIndices, UINT numIndices);
+
+	// Create a Mesh from object data in file.
+	Mesh(ID3D11Device* pDevice, char* objFile);
 
 	// Destructor for Mesh class. Calls Release() on both Vertex & Index buffers.
 	~Mesh();
@@ -29,4 +35,6 @@ private:
 
 	// Specifies how many indices are there in Mesh's Index buffer.
 	UINT IndexCount;
+
+	void CreateBuffers(ID3D11Device* pDevice, Vertex* pVerts, UINT numVerts, UINT* pIndices, UINT numIndices);
 };
