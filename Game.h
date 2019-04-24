@@ -5,6 +5,7 @@
 #include <DirectXMath.h>
 #include <vector>
 #include "Lights.h"
+#include <DirectXTK/WICTextureLoader.h>
 
 // Forward Declaration
 class Entity;
@@ -41,8 +42,6 @@ private:
 
 	// Mesh Object to use with Mesh Class to draw 3 different shapes.
 	class Mesh* MeshOne = nullptr;
-	class Mesh* MeshTwo = nullptr;
-	class Mesh* MeshThree = nullptr;
 
 	// List of Entities used in our game.
 	std::vector<Entity*> entities;
@@ -63,10 +62,10 @@ private:
 	DirectionalLight directional_light;
 	DirectionalLight directional_light_two;
 
-	// The matrices to go from model space to screen space
-	/*DirectX::XMFLOAT4X4 worldMatrix;
-	DirectX::XMFLOAT4X4 viewMatrix;
-	DirectX::XMFLOAT4X4 projectionMatrix;*/
+	// Texture related pointers
+	ID3D11ShaderResourceView* pebblesShaderResourceView;
+	ID3D11ShaderResourceView* pebblesNormalShaderResourceView;
+	ID3D11SamplerState* sampler;
 
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.

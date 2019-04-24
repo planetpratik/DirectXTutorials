@@ -42,6 +42,12 @@ public:
 
 	void updateMouseInput(const float t_DeltaMouseX, const float t_DeltaMouseY);
 
+	// Set if camera should be rotating.
+	void setDoRotation(bool t_do_rotation);
+
+	// Returns whether camera is doing rotation or not.
+	const bool getDoRotation() const;
+
 private:
 	void updateViewMatrix(const float t_delta_time);
 	float x_axis_rotation = 0.0f;
@@ -55,4 +61,5 @@ private:
 	const float vertical_rotation_speed = 0.005f;
 	bool isUsingInvertAxis = false;
 	DirectX::XMFLOAT3 relativeInput;
+	bool doRotation = false;
 };

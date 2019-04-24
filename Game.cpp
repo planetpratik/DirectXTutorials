@@ -4,9 +4,11 @@
 #include "Entity.h"
 #include "Camera.h"
 #include "Material.h"
+#include <string>
 
 // For the DirectX Math library
 using namespace DirectX;
+using namespace std::string_literals;
 
 // --------------------------------------------------------
 // Constructor
@@ -58,11 +60,23 @@ Game::~Game()
 	{
 		delete camera;
 	}
+
+	if (pebblesShaderResourceView)
+	{
+		pebblesShaderResourceView->Release();
+	}
+	if (pebblesNormalShaderResourceView)
+	{
+		pebblesNormalShaderResourceView->Release();
+	}
+
+	if (sampler)
+	{
+		sampler->Release();
+	}
 	
 	// Delete Mesh objects as we created them on heap;
 	delete MeshOne;
-	delete MeshTwo;
-	delete MeshThree;
 
 	// Delete Entities
 	for (size_t i = 0; i < entityCount; ++i)
@@ -92,6 +106,31 @@ void Game::Init()
 	CreateBasicGeometry();
 
 	InitLights();
+
+	CreateWICTextureFromFile(
+		device,
+		context,
+		L"Assets/Textures/BeachPebbles_1024_albedo.tif",
+		0,
+		&pebblesShaderResourceView
+	);
+
+	CreateWICTextureFromFile(
+		device,
+		context,
+		L"Assets/Textures/BeachPebbles_1024_normal.tif",
+		0,
+		&pebblesNormalShaderResourceView
+	);
+	// Create a Sampler State
+	D3D11_SAMPLER_DESC sampler_desc = {};
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	device->CreateSamplerState(&sampler_desc, &sampler);
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
@@ -129,13 +168,13 @@ void Game::LoadShaders()
 
 void Game::InitLights()
 {
-	directional_light.AmbientColor = XMFLOAT4(0.1, 0.1, 0.1, 1.0);
-	directional_light.DiffuseColor = XMFLOAT4(0.0, 0.0, 1.0, 1.0);
-	directional_light.Direction = XMFLOAT3(1.0, -1.0, 0.0);
+	directional_light.AmbientColor = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	directional_light.DiffuseColor = XMFLOAT4(0.9f, 0.1f, 0.1f, 1.0f);
+	directional_light.Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
 
-	directional_light_two.AmbientColor = XMFLOAT4(0.1, 0.1, 0.1, 1.0);
-	directional_light_two.DiffuseColor = XMFLOAT4(1.0, 0.1, 0.1, 1.0);
-	directional_light_two.Direction = XMFLOAT3(1.0, -1.0, 0.5);
+	directional_light_two.AmbientColor = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	directional_light_two.DiffuseColor = XMFLOAT4(0.0f, 1.0f, 0.1f, 1.0f);
+	directional_light_two.Direction = XMFLOAT3(-1.0f, 0.0f, 0.5f);
 }
 
 // --------------------------------------------------------
@@ -158,30 +197,7 @@ void Game::CreateBasicGeometry()
 	XMFLOAT4 red	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 	XMFLOAT4 green	= XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	XMFLOAT4 blue	= XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
-
-	// Set up the vertices of the triangle we would like to draw
-	// - We're going to copy this array, exactly as it exists in memory
-	//    over to a DirectX-controlled data structure (the vertex buffer)
-	Vertex verticesOne[] = 
-	{
-		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-		{ XMFLOAT3(+1.5f, -1.0f, +0.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-		{ XMFLOAT3(-1.5f, -1.0f, +0.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-	};
-
-	Vertex verticesTwo[] =
-	{
-		{ XMFLOAT3(+1.0f, +2.0f, +1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-		{ XMFLOAT3(+2.5f, +0.0f, +1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-		{ XMFLOAT3(-0.5f, +0.0f, +1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-	};
-
-	Vertex verticesThree[] =
-	{
-		{ XMFLOAT3(-1.0f, +0.0f, -1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-		{ XMFLOAT3(+0.5f, -2.0f, -1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-		{ XMFLOAT3(-2.5f, -2.0f, -1.0f), XMFLOAT3(0,0,-1), XMFLOAT2(0,0) },
-	};
+	
 
 	// Set up the indices, which tell us which vertices to use and in which order
 	// - This is somewhat redundant for just 3 vertices (it's a simple example)
@@ -190,23 +206,16 @@ void Game::CreateBasicGeometry()
 	// - But just to see how it's done...
 	UINT indices[] = { 0, 1, 2 };
 
-	MeshOne = new Mesh(device, "Assets/Models/helix.obj");
-	MeshTwo = new Mesh(device, "Assets/Models/torus.obj");
-	MeshThree = new Mesh(device, verticesThree, 3, indices, 3);
-
-	material = new Material(vertexShader, pixelShader);
+	MeshOne = new Mesh(device, "Assets/Models/sphere.obj");
+	material = new Material(vertexShader, pixelShader, pebblesShaderResourceView, pebblesNormalShaderResourceView, sampler);
 
 	// Create entities based on these Meshes
 	entities.push_back(new Entity(MeshOne, material));
 	++entityCount;
-	entities.push_back(new Entity(MeshTwo, material));
-	++entityCount;
-	entities.push_back(new Entity(MeshThree, material));
-	++entityCount;
+
 	entities[entityCount - 1]->MoveAbsolute(-1.0f, -1.0f, 0.0f);
 
 }
-
 
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.
@@ -230,18 +239,6 @@ void Game::Update(float deltaTime, float totalTime)
 		Quit();
 
 	camera->update(deltaTime);
-
-	if (entityCount >= 0)
-	{
-		const float speed = 1.2f;
-		float Sintime = (0.5f * sinf(0.5f * totalTime) + 0.8f);
-		entities[0]->SetScale(Sintime, Sintime, Sintime);
-		entities[0]->MoveAbsolute(
-			speed * deltaTime,
-			speed * deltaTime,
-			speed * deltaTime
-		);
-	}
 
 	for (size_t i = 0; i < entityCount; ++i)
 	{
@@ -291,12 +288,13 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		currentEntity = entities[i];
 		// Set the pixel shader before we draw each entity
-		pixelShader->SetData("green_light", &directional_light_two, sizeof(DirectionalLight));
+		pixelShader->SetData("light_two", &directional_light_two, sizeof(DirectionalLight));
 		pixelShader->SetData("light", &directional_light, sizeof(DirectionalLight));
+		pixelShader->SetFloat3("CameraPosition", camera->getCameraPosition());
+		pixelShader->SetShaderResourceView("DiffuseTexture", pebblesShaderResourceView);
+		pixelShader->SetShaderResourceView("NormalTexture", pebblesNormalShaderResourceView);
+		pixelShader->SetSamplerState("BasicSampler", sampler);
 		currentEntity->prepareMaterial(camera->getViewMatrix(), camera->getProjectionMatrix());
-		//vertexShader->SetMatrix4x4("world", currentEntity->GetWorldMatrix());
-		//vertexShader->SetMatrix4x4("view", camera->getViewMatrix());
-		//vertexShader->SetMatrix4x4("projection", camera->getProjectionMatrix());
 
 		entityMesh = currentEntity->GetEntityMesh();
 		meshVertexBuffer = entityMesh->GetVertexBuffer();
@@ -336,7 +334,7 @@ void Game::Draw(float deltaTime, float totalTime)
 void Game::OnMouseDown(WPARAM buttonState, int x, int y)
 {
 	// Add any custom code here...
-
+	camera->setDoRotation(true);
 	// Save the previous mouse position, so we have it for the future
 	prevMousePos.x = x;
 	prevMousePos.y = y;
@@ -353,7 +351,7 @@ void Game::OnMouseDown(WPARAM buttonState, int x, int y)
 void Game::OnMouseUp(WPARAM buttonState, int x, int y)
 {
 	// Add any custom code here...
-
+	camera->setDoRotation(false);
 	// We don't care about the tracking the cursor outside
 	// the window anymore (we're not dragging if the mouse is up)
 	ReleaseCapture();

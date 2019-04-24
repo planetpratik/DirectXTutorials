@@ -116,12 +116,17 @@ void Camera::updateProjectionMatrix(const unsigned int t_width, const unsigned i
 
 void Camera::updateMouseInput(const float t_DeltaMouseX, const float t_DeltaMouseY)
 {
+	if (!doRotation)
+	{
+		return;
+	}
+
 	x_axis_rotation += t_DeltaMouseX * horizontal_rotation_speed;
 	if (x_axis_rotation < -90)
 	{
 		x_axis_rotation = -90;
 	}
-	else if (x_axis_rotation > -85)
+	else if (x_axis_rotation > -80)
 	{
 		x_axis_rotation = -85;
 	}
@@ -131,11 +136,21 @@ void Camera::updateMouseInput(const float t_DeltaMouseX, const float t_DeltaMous
 	{
 		y_axis_rotation = -90;
 	}
-	else if (y_axis_rotation > -85)
+	else if (y_axis_rotation > -80)
 	{
 		y_axis_rotation = -85;
 	}
 	printf("Rot Values:\tX: %f Y: %f\n", x_axis_rotation, y_axis_rotation);
+}
+
+void Camera::setDoRotation(bool t_do_rotation)
+{
+	doRotation = t_do_rotation;
+}
+
+const bool Camera::getDoRotation() const
+{
+	return doRotation;
 }
 
 void Camera::updateViewMatrix(const float t_delta_time)

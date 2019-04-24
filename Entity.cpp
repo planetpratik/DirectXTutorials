@@ -2,6 +2,8 @@
 #include "Material.h"
 #include "SimpleShader.h"
 
+struct ID3D11SamplerState;
+struct ID3D11ShaderResourceView;
 using namespace DirectX;
 
 Entity::Entity(Mesh* t_mesh, Material* t_material) : 
